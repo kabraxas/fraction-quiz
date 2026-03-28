@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>분수 퀴즈 챔피언</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    background: #f5f0ff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 3rem;
+  }
+
+  .wrap { width: 100%; max-width: 560px; }
+
+  .header {
+    background: #EEEDFE; border-radius: 16px; padding: 12px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 1.2rem;
+  }
+  .hdr-left { font-size: 13px; color: #534AB7; font-weight: 500; }
+  .hdr-score { font-size: 26px; font-weight: 600; color: #3C3489; }
+  .hdr-right { text-align: right; }
+  .hdr-name { font-size: 13px; color: #7F77DD; font-weight: 500; }
+  .hdr-team { font-size: 11px; color: #AFA9EC; margin-top: 2px; }
+  .prog-bar { height: 6px; background: #CECBF6; border-radius: 6px; margin-top: 8px; overflow: hidden; }
+  .prog-fill { height: 100%; background: #7F77DD; border-radius: 6px; transition: width .4s; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* INTRO */
+  .intro-card {
+    background: #fff; border: 0.5px solid rgba(0,0,0,0.1);
+    border-radius: 20px; padding: 2.2rem 1.8rem; text-align: center;
+  }
+  .intro-icon { font-size: 52px; margin-bottom: 1rem; line-height: 1; }
+  .intro-title { font-size: 22px; font-weight: 600; color: #3C3489; margin-bottom: .4rem; }
+  .intro-sub { font-size: 13px; color: #7F77DD; margin-bottom: 1.6rem; line-height: 1.7; }
+  .field-row { display: flex; flex-direction: column; gap: 12px; margin-bottom: 1.4rem; text-align: left; }
+  .field-label { font-size: 12px; color: #534AB7; font-weight: 600; margin-bottom: 4px; }
+  .field-row input {
+    width: 100%; padding: 11px 14px; border-radius: 10px;
+    border: 1.5px solid #CECBF6; font-size: 15px;
+    font-family: inherit; background: #fff; color: #26215C; outline: none;
+  }
+  .field-row input:focus { border-color: #7F77DD; }
+  .start-btn {
+    width: 100%; padding: 13px; border-radius: 14px;
+    background: #7F77DD; color: #fff; font-size: 16px;
+    font-weight: 600; font-family: inherit; border: none; cursor: pointer;
+    transition: opacity .15s;
+  }
+  .start-btn:hover { opacity: .88; }
+
+  /* QUIZ */
+  .q-card {
+    background: #fff; border: 0.5px solid rgba(0,0,0,0.1);
+    border-radius: 20px; padding: 1.8rem 1.4rem; margin-bottom: 1rem; text-align: center;
+  }
+  .q-badge {
+    display: inline-block; background: #EEEDFE; color: #534AB7;
+    font-size: 11px; font-weight: 600; padding: 3px 12px;
+    border-radius: 20px; margin-bottom: .8rem;
+  }
+  .q-text { font-size: 19px; font-weight: 500; color: #26215C; margin-bottom: 1.2rem; line-height: 1.5; }
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 1.2rem; }
+  .choice-btn {
+    padding: 15px 10px; border-radius: 14px;
+    border: 1.5px solid #CECBF6; background: #fff;
+    font-size: 16px; font-weight: 500; color: #534AB7;
+    cursor: pointer; font-family: inherit;
+    transition: background .15s, border-color .15s, transform .1s;
+  }
+  .choice-btn:hover:not(:disabled) { background: #EEEDFE; border-color: #AFA9EC; }
+  .choice-btn:active { transform: scale(.97); }
+  .choice-btn.correct { background: #E1F5EE; border-color: #5DCAA5; color: #085041; }
+  .choice-btn.wrong   { background: #FCEBEB; border-color: #F09595; color: #791F1F; }
+  .choice-btn:disabled { cursor: default; }
+  .feedback { margin-top: .8rem; font-size: 13px; font-weight: 500; min-height: 22px; color: #888; }
+  .feedback.ok { color: #0F6E56; }
+  .feedback.no { color: #A32D2D; }
+
+  /* RESULT */
+  .result-hero {
+    background: #EEEDFE; border-radius: 20px;
+    padding: 2rem 1.5rem; margin-bottom: 1rem; text-align: center;
+  }
+  .result-trophy { font-size: 54px; line-height: 1; margin-bottom: .8rem; }
+  .result-title  { font-size: 24px; font-weight: 600; color: #3C3489; margin-bottom: .3rem; }
+  .result-score-big { font-size: 40px; font-weight: 600; color: #534AB7; margin-bottom: .2rem; }
+  .result-sub  { font-size: 14px; color: #7F77DD; }
+  .result-msg  { font-size: 14px; color: #534AB7; margin-top: .7rem; font-weight: 500; }
+
+  .sheets-box {
+    background: #E1F5EE; border-radius: 14px;
+    padding: 1rem 1.2rem; margin-bottom: 1rem;
+  }
+  .sheets-status { font-size: 14px; font-weight: 600; color: #085041; margin-bottom: 3px; }
+  .sheets-note   { font-size: 12px; color: #0F6E56; }
+
+  .hall-card {
+    background: #fff; border: 0.5px solid rgba(0,0,0,0.1);
+    border-radius: 16px; padding: 1.2rem 1.2rem .8rem; margin-bottom: 1rem;
+  }
+  .hall-title { font-size: 13px; font-weight: 500; color: #888; margin-bottom: .8rem; }
+  .hall-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 0; border-bottom: 0.5px solid rgba(0,0,0,0.07);
+  }
+  .hall-row:last-child { border-bottom: none; }
+  .hall-rank {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; flex-shrink: 0;
+  }
+  .rank-1 { background: #FAEEDA; color: #633806; }
+  .rank-2 { background: #F1EFE8; color: #444441; }
+  .rank-3 { background: #FAECE7; color: #712B13; }
+  .rank-n { background: #EEEDFE; color: #3C3489; }
+  .hall-name { flex: 1; font-size: 14px; color: #26215C; }
+  .hall-team { font-size: 11px; color: #888; }
+  .hall-pts  { font-size: 15px; font-weight: 600; color: #534AB7; }
+  .hall-you  {
+    font-size: 10px; background: #EEEDFE; color: #534AB7;
+    padding: 2px 7px; border-radius: 10px; margin-left: 5px;
+  }
+
+  .url-note {
+    background: #FAEEDA; border-radius: 12px;
+    padding: .9rem 1rem; margin-bottom: 1rem;
+    font-size: 12px; color: #633806; line-height: 1.7;
+  }
+  .url-note code {
+    background: #F5E0C0; padding: 1px 5px;
+    border-radius: 4px; font-family: monospace;
+  }
+
+  .action-row { display: flex; gap: 10px; }
+  .action-btn {
+    flex: 1; padding: 12px; border-radius: 12px; font-size: 14px;
+    font-family: inherit; cursor: pointer; font-weight: 500;
+    border: 1.5px solid #AFA9EC; background: transparent; color: #534AB7;
+    transition: background .2s;
+  }
+  .action-btn:hover { background: #EEEDFE; }
+  .action-btn.primary { background: #7F77DD; border-color: #7F77DD; color: #fff; }
+  .action-btn.primary:hover { opacity: .88; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- INTRO -->
+  <div id="s-intro" class="screen active">
+    <div class="intro-card">
+      <div class="intro-icon">🍕</div>
+      <div class="intro-title">분수 퀴즈 챔피언</div>
+      <div class="intro-sub">이름과 팀을 입력하고 퀴즈를 시작해요!<br>점수는 명예의 전당에 기록됩니다.</div>
+      <div class="field-row">
+        <div>
+          <div class="field-label">이름</div>
+          <input id="inp-name" type="text" placeholder="예: 김민준" maxlength="10" />
+        </div>
+        <div>
+          <div class="field-label">팀 / 모둠</div>
+          <input id="inp-team" type="text" placeholder="예: 1모둠, 파랑팀" maxlength="10" />
+        </div>
+      </div>
+      <button class="start-btn" onclick="startQuiz()">퀴즈 시작!</button>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="s-quiz" class="screen">
+    <div class="header">
+      <div class="hdr-left">
+        <div>현재 점수</div>
+        <div class="hdr-score" id="hdr-score">0점</div>
+        <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="hdr-right">
+        <div class="hdr-name" id="hdr-name">-</div>
+        <div class="hdr-team" id="hdr-team">-</div>
+      </div>
+    </div>
+    <div id="q-area"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="s-result" class="screen">
+    <div class="result-hero">
+      <div class="result-trophy" id="res-trophy">🏆</div>
+      <div class="result-title">참 잘했어요!</div>
+      <div class="result-score-big" id="res-score-big">0점</div>
+      <div class="result-sub" id="res-sub">5문제 중 0문제 정답</div>
+      <div class="result-msg" id="res-msg"></div>
+    </div>
+
+    <div class="sheets-box" id="sheets-box">
+      <div class="sheets-status" id="sheets-status">📊 점수 기록 중...</div>
+      <div class="sheets-note" id="sheets-note">Google 스프레드시트에 결과를 저장하고 있어요.</div>
+    </div>
+
+    <div class="hall-card">
+      <div class="hall-title">🏅 명예의 전당</div>
+      <div id="hall-list"></div>
+    </div>
+
+    <div class="url-note" id="url-note" style="display:none">
+      <strong>⚙️ 선생님께:</strong> 이 파일에서 <code>SCRIPT_URL</code> 값을 Google Apps Script 웹앱 URL로 교체하면 스프레드시트에 자동 기록됩니다. 아래 설정 가이드를 참고해 주세요.
+    </div>
+
+    <div class="action-row">
+      <button class="action-btn" onclick="goIntro()">다른 학생</button>
+      <button class="action-btn primary" onclick="retryQuiz()">다시 풀기</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* ──────────────────────────────────────────
+     ★ 선생님: 아래 URL을 Apps Script 웹앱 URL로 교체하세요!
+     Apps Script 배포 → 웹앱 URL 복사 → 여기에 붙여넣기
+  ────────────────────────────────────────── */
+  var SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+
+  var questions = [
+    { q: '다음 중 가장 큰 분수는?',       choices: ['1/2','2/3','3/4','5/8'], answer: 2, explain: '3/4 = 0.75로 가장 커요!' },
+    { q: '1/3 + 1/6 를 계산하면?',        choices: ['1/2','2/9','1/9','2/6'], answer: 0, explain: '1/3 = 2/6, 2/6 + 1/6 = 3/6 = 1/2' },
+    { q: '3/4 - 1/4 를 계산하면?',        choices: ['2/8','1/2','2/4','1/4'], answer: 1, explain: '3/4 - 1/4 = 2/4 = 1/2' },
+    { q: '1/2 × 2/3 를 계산하면?',        choices: ['1/6','2/6','1/3','3/6'], answer: 2, explain: '1×2 / 2×3 = 2/6 = 1/3' },
+    { q: '다음 분수를 약분하면? 6/9',       choices: ['3/4','2/3','1/3','3/6'], answer: 1, explain: '6과 9의 최대공약수는 3 → 2/3' }
+  ];
+
+  var playerName = '', playerTeam = '', score = 0, cur = 0, answered = false;
+  var hall = [];
+  try { hall = JSON.parse(localStorage.getItem('frac_hall') || '[]'); } catch(e) {}
+
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+  }
+
+  function startQuiz() {
+    playerName = document.getElementById('inp-name').value.trim() || '이름없음';
+    playerTeam = document.getElementById('inp-team').value.trim() || '팀없음';
+    score = 0; cur = 0;
+    document.getElementById('hdr-name').textContent = playerName;
+    document.getElementById('hdr-team').textContent = playerTeam;
+    document.getElementById('hdr-score').textContent = '0점';
+    document.getElementById('prog-fill').style.width = '0%';
+    show('s-quiz');
+    renderQ();
+  }
+
+  function renderQ() {
+    var q = questions[cur];
+    document.getElementById('prog-fill').style.width = (cur / questions.length * 100) + '%';
+    answered = false;
+    var area = document.getElementById('q-area');
+    area.innerHTML =
+      '<div class="q-card">' +
+        '<div class="q-badge">문제 ' + (cur + 1) + ' / ' + questions.length + '</div>' +
+        '<div class="q-text">' + q.q + '</div>' +
+        '<div class="choices" id="choices">' +
+          q.choices.map(function(c, i) {
+            return '<button class="choice-btn" onclick="pick(' + i + ')">' + c + '</button>';
+          }).join('') +
+        '</div>' +
+        '<div class="feedback" id="feedback"></div>' +
+      '</div>';
+  }
+
+  function pick(i) {
+    if (answered) return;
+    answered = true;
+    var q = questions[cur];
+    var btns = document.querySelectorAll('.choice-btn');
+    var fb = document.getElementById('feedback');
+    btns.forEach(function(b){ b.disabled = true; });
+    if (i === q.answer) {
+      score += 20;
+      btns[i].classList.add('correct');
+      fb.className = 'feedback ok';
+      fb.textContent = '정답! ' + q.explain;
+      document.getElementById('hdr-score').textContent = score + '점';
+    } else {
+      btns[i].classList.add('wrong');
+      btns[q.answer].classList.add('correct');
+      fb.className = 'feedback no';
+      fb.textContent = '아쉬워요! ' + q.explain;
+    }
+    setTimeout(function() {
+      cur++;
+      if (cur < questions.length) { renderQ(); } else { showResult(); }
+    }, 1400);
+  }
+
+  function showResult() {
+    var correct = score / 20;
+    var trophy = score === 100 ? '🏆' : score >= 60 ? '🥈' : '🥉';
+    var msg = score === 100 ? '만점! 분수 마스터예요!' : score >= 60 ? '잘했어요! 조금만 더 연습해봐요.' : '다시 한번 도전해봐요!';
+    document.getElementById('res-trophy').textContent = trophy;
+    document.getElementById('res-score-big').textContent = score + '점';
+    document.getElementById('res-sub').textContent = questions.length + '문제 중 ' + correct + '문제 정답';
+    document.getElementById('res-msg').textContent = msg;
+
+    var entry = { name: playerName, team: playerTeam, score: score, date: new Date().toLocaleDateString('ko-KR') };
+    hall.push(entry);
+    hall.sort(function(a, b){ return b.score - a.score; });
+    if (hall.length > 10) hall = hall.slice(0, 10);
+    try { localStorage.setItem('frac_hall', JSON.stringify(hall)); } catch(e) {}
+
+    renderHall(entry);
+    show('s-result');
+    sendToSheets(entry);
+  }
+
+  function renderHall(me) {
+    var list = document.getElementById('hall-list');
+    if (!hall.length) {
+      list.innerHTML = '<div style="font-size:13px;color:#888;padding:8px 0">아직 기록이 없어요.</div>';
+      return;
+    }
+    list.innerHTML = hall.slice(0, 8).map(function(e, i) {
+      var rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-n';
+      var isMe = e.name === me.name && e.team === me.team && e.score === me.score;
+      return '<div class="hall-row">' +
+        '<div class="hall-rank ' + rankClass + '">' + (i + 1) + '</div>' +
+        '<div class="hall-name">' + e.name + (isMe ? '<span class="hall-you">나</span>' : '') +
+          '<br><span class="hall-team">' + e.team + '</span></div>' +
+        '<div class="hall-pts">' + e.score + '점</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function sendToSheets(entry) {
+    var box = document.getElementById('sheets-box');
+    var st  = document.getElementById('sheets-status');
+    var sn  = document.getElementById('sheets-note');
+
+    if (!SCRIPT_URL || SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+      box.style.background = '#FAEEDA';
+      st.style.color = '#633806'; st.textContent = '⚙️ 스프레드시트 미연결';
+      sn.style.color = '#854F0B'; sn.textContent = 'SCRIPT_URL을 설정하면 자동 기록됩니다.';
+      document.getElementById('url-note').style.display = 'block';
+      return;
+    }
+    var params = new URLSearchParams({ name: entry.name, team: entry.team, score: entry.score, date: entry.date });
+    fetch(SCRIPT_URL + '?' + params, { method: 'GET', mode: 'no-cors' })
+      .then(function() {
+        st.textContent = '✅ 스프레드시트에 기록 완료!';
+        sn.textContent = entry.name + ' (' + entry.team + ') → ' + entry.score + '점 저장됨';
+      })
+      .catch(function(e) {
+        box.style.background = '#FCEBEB';
+        st.style.color = '#791F1F'; st.textContent = '❌ 저장 실패';
+        sn.style.color = '#A32D2D'; sn.textContent = 'URL을 확인해주세요.';
+      });
+  }
+
+  function goIntro()   { show('s-intro'); }
+  function retryQuiz() {
+    score = 0; cur = 0;
+    document.getElementById('hdr-score').textContent = '0점';
+    document.getElementById('prog-fill').style.width = '0%';
+    show('s-quiz'); renderQ();
+  }
+</script>
+
+<!--
+  ════════════════════════════════════════════
+  ★ Google Apps Script 설정 가이드 (선생님용)
+  ════════════════════════════════════════════
+
+  1. 구글 스프레드시트 새로 만들기
+     - 1행에 헤더 입력: 이름 / 팀 / 점수 / 날짜 / 제출시각
+
+  2. 상단 메뉴 → 확장 프로그램 → Apps Script
+     아래 코드 붙여넣고 저장:
+
+     function doGet(e) {
+       var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+       var p = e.parameter;
+       sheet.appendRow([p.name, p.team, Number(p.score), p.date, new Date()]);
+       return ContentService.createTextOutput('OK');
+     }
+
+  3. 배포 → 새 배포 → 유형: 웹 앱
+     - 실행 계정: 나
+     - 액세스 권한: 모든 사용자
+     → 배포 후 웹앱 URL 복사
+
+  4. 이 파일 상단의 SCRIPT_URL 값을 복사한 URL로 교체
+
+  5. GitHub Pages 또는 Google Drive로 배포 후 학생들에게 링크/QR 공유
+  ════════════════════════════════════════════
+-->
+</body>
+</html>
